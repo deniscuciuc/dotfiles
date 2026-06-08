@@ -164,6 +164,7 @@ alias gl='git log --oneline --graph --decorate'
 alias gd='git diff'
 alias gco='git checkout'
 alias gcb='git checkout -b'
+alias gsm='git submodule update --init --recursive'
 alias lg='lazygit'
 
 # ── Docker shortcuts ────────────────────────────────────
