@@ -247,6 +247,95 @@ czsync() {
   echo "✔ Synced dotfiles to repo"
 }
 
+# ── restic ─────────────────────────────────────────────
+
+export RESTIC_REPOSITORY="/mnt/backup/workstation"
+export RESTIC_PASSWORD_FILE="$HOME/.restic-password"
+
+export RESTIC_TARGETS="$HOME/.backup-targets.txt"
+export RESTIC_EXCLUDES="$HOME/.restic-excludes"
+
+# aliases
+alias r='restic'
+alias ri='restic init'
+alias rs='restic snapshots'
+alias rl='restic ls latest'
+alias rc='restic check'
+alias rss='restic stats'
+alias rf='restic forget'
+alias rst='restic restore latest'
+
+# ── SAFE BACKUP FUNCTION (FIXED) ───────────────────────
+rbhome() {
+  if [ ! -f "$RESTIC_TARGETS" ]; then
+    echo "❌ Missing targets file: $RESTIC_TARGETS"
+    return 1
+  fi
+
+  if [ ! -f "$RESTIC_EXCLUDES" ]; then
+    echo "❌ Missing excludes file: $RESTIC_EXCLUDES"
+    return 1
+  fi
+
+  if ! mountpoint -q /mnt/backup/workstation; then
+    echo "❌ Backup disk not mounted!"
+    return 1
+  fi
+
+  echo "✔ Running Restic backup..."
+
+  # convert each line into absolute path safely
+  targets=()
+
+  while IFS= read -r line; do
+    # skip empty lines and comments
+    [[ -z "$line" || "$line" == \#* ]] && continue
+
+    # expand ONLY ~ safely
+    expanded="${line/#\~/$HOME}"
+
+    if [ -e "$expanded" ]; then
+      targets+=("$expanded")
+    else
+      echo "⚠️ Skipping missing: $expanded"
+    fi
+  done < "$RESTIC_TARGETS"
+
+  if [ ${#targets[@]} -eq 0 ]; then
+    echo "❌ No valid backup sources found"
+    return 1
+  fi
+
+  restic backup "${targets[@]}" \
+    --one-file-system \
+    --compression auto \
+    --exclude-file "$RESTIC_EXCLUDES"
+}
+
+# ── CLEANUP ────────────────────────────────────────────
+rcleanup() {
+  restic forget \
+    --keep-daily 7 \
+    --keep-weekly 4 \
+    --keep-monthly 12 \
+    --prune
+}
+
+# ── FULL MAINTENANCE ───────────────────────────────────
+rmaint() {
+  rbhome && rcleanup && rc
+}
+
+# ── RESTORE ────────────────────────────────────────────
+rrestore() {
+  if [ -z "$1" ]; then
+    echo "Usage: rrestore <snapshot-id|latest>"
+    return 1
+  fi
+
+  restic restore "$1" --target /tmp/restic-restore
+}
+
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion

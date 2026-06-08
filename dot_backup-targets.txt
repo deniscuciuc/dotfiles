@@ -1,0 +1,10 @@
+Desktop
+Documents
+Pictures
+Videos
+Development
+dotfiles
+.ssh
+.gitconfig
+.zshrc
+.zprofile
