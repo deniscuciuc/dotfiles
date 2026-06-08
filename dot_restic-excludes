@@ -1,0 +1,37 @@
+# --- caches ---
+.cache/
+.npm/
+.nv/
+.local/share/Trash/
+.zcompdump*
+.zsh_history
+.bash_history
+.z
+
+# --- dev env noise ---
+node_modules/
+**/node_modules/
+.pyenv/
+.nvm/
+.nuget/
+.dotnet/
+.vscode/
+.vscode-shared/
+.snap/
+
+# --- logs ---
+*.log
+zsh-debug.log
+
+# --- AI / tooling caches ---
+.claude/
+.codex/
+.copilot/
+.copilot-cli-access-token
+
+# --- temp files ---
+*.tmp
+*.swp
+
+# --- optional heavy history (can skip if you want minimal backup) ---
+.zsh_history
