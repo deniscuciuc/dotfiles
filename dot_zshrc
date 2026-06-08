@@ -185,6 +185,68 @@ alias cat='batcat'          # bat replaces cat
 alias find='fd'          # fd replaces find
 alias grep='rg'          # ripgrep replaces grep
 
+# ── chezmoi ────────────────────────────────────────────
+alias cz='chezmoi'
+alias cza='chezmoi apply'
+alias czaa='chezmoi add'
+alias czd='chezmoi diff'
+alias czs='chezmoi status'
+alias cze='chezmoi edit'
+alias czr='chezmoi re-add'
+alias czu='chezmoi update'
+alias czg='cd ~/.local/share/chezmoi'
+
+# quick sync (add + commit + push)
+czpush() {
+  cd ~/.local/share/chezmoi || return
+
+  if [ -z "$1" ]; then
+    msg="update dotfiles"
+  else
+    msg="$*"
+  fi
+
+  git add .
+  git commit -m "$msg"
+  git push
+
+  echo "✔ dotfiles pushed"
+}
+
+# apply + update in one shot
+czsync() {
+  chezmoi update
+  chezmoi apply
+}
+
+# ── chezmoi sync (system → repo → push) ─────────────────
+czsync() {
+  cd ~/.local/share/chezmoi || return
+
+  echo "→ Updating chezmoi source from current system..."
+
+  # 1. detect changes in HOME and update source
+  chezmoi add ~/.zshrc
+  chezmoi add ~/.gitconfig
+  # chezmoi add ~/.tmux.conf
+  # chezmoi add ~/.config/kitty 2>/dev/null
+  # chezmoi add ~/.config/starship.toml 2>/dev/null
+
+  # 2. sync repo
+  git add .
+
+  if git diff --cached --quiet; then
+    echo "✔ No changes to sync"
+    return
+  fi
+
+  msg="${*:-dotfiles update}"
+  git commit -m "$msg"
+  git push
+
+  echo "✔ Synced dotfiles to repo"
+}
+
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
