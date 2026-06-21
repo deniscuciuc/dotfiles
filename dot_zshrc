@@ -214,12 +214,6 @@ czpush() {
   echo "✔ dotfiles pushed"
 }
 
-# apply + update in one shot
-czsync() {
-  chezmoi update
-  chezmoi apply
-}
-
 # ── chezmoi sync (system → repo → push) ─────────────────
 czsync() {
   cd ~/.local/share/chezmoi || return
@@ -230,7 +224,8 @@ czsync() {
   chezmoi add ~/.zshrc
   chezmoi add ~/.gitconfig
   # chezmoi add ~/.tmux.conf
-  # chezmoi add ~/.config/kitty 2>/dev/null
+  chezmoi add ~/.config/kitty 2>/dev/null
+  chezmoi add ~/.config/nvim 2>/dev/null
   # chezmoi add ~/.config/starship.toml 2>/dev/null
 
   # 2. sync repo
