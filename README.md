@@ -6,6 +6,8 @@ Portable configuration for Bash, Git, Starship, Kitty, VS Code, Claude/Codex and
 
 ## Install
 
+`ws-storage` reports pnpm/filesystem sharing, worktrees and disk usage. `ws-maintenance` supplies low-space/backup checks for ws-setup's user timers. Their schedules, exclusions and controls are documented in [storage and maintenance](https://github.com/deniscuciuc/ws-setup/blob/main/docs/MAINTENANCE.md).
+
 Read the [Workstation Handbook](https://github.com/deniscuciuc/ws-setup/blob/main/docs/handbook/README.md) for the purpose and daily use of the installed tools, configuration locations, maintenance and troubleshooting. This repository's [terminal guide](docs/TERMINAL.md) and [backup guide](docs/BACKUP.md) describe the user configuration it owns.
 
 Use the workstation installer so the required commands exist first:

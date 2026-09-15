@@ -46,4 +46,4 @@ ws-backup retention        # Show instructions; makes no changes
 ws-backup retention --apply
 ```
 
-The applied policy retains 7 daily, 4 weekly and 12 monthly snapshots, then prunes unreferenced data. No backup command runs retention automatically and no recurring timer is enabled by default.
+The applied policy retains 7 daily, 4 weekly and 12 monthly snapshots, then prunes unreferenced data. No backup command runs retention automatically. ws-setup's workstation maintenance module schedules daily backups and weekly integrity checks; this dotfiles repository supplies their helpers but does not enable timers itself. Use `ws-maintenance backup` for manual runs that update backup freshness tracking. See [maintenance](https://github.com/deniscuciuc/ws-setup/blob/main/docs/MAINTENANCE.md).

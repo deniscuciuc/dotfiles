@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+"""Inspect pnpm sharing, development disk usage and existing system maintenance.
+Only pnpm --probe writes temporary test files, which it removes afterwards.
+"""
+import argparse
+import os
+from pathlib import Path
+import subprocess
+import tempfile
+
+
+def run(args, **kwargs):
+    return subprocess.run(args, text=True, check=True, **kwargs)
+
+
+def pnpm(project, probe):
+    project = Path(project).expanduser().resolve(strict=True)
+    env = dict(os.environ, COREPACK_ENABLE_NETWORK="0")
+    result = run(["pnpm", "store", "path"], cwd=project, env=env, capture_output=True)
+    store = Path(result.stdout.strip())
+    if not store.is_absolute():
+        raise ValueError("pnpm did not return an absolute store path")
+    ancestor = store
+    while not ancestor.exists():
+        ancestor = ancestor.parent
+    same = project.stat().st_dev == ancestor.stat().st_dev
+    print(f"Project: {project}\nStore: {store}\nSame filesystem: {same}")
+    run(["pnpm", "config", "get", "packageImportMethod"], cwd=project, env=env)
+    print("Keep store and worktrees on the same filesystem; a different partition can cause copies.")
+    if not same:
+        raise ValueError("Store and project are on different filesystems; review storeDir overrides")
+    if probe:
+        if not store.is_dir():
+            raise ValueError("Install project dependencies first so the store exists")
+        with tempfile.TemporaryDirectory(prefix=".ws-link-", dir=store) as left, tempfile.TemporaryDirectory(prefix=".ws-link-", dir=project) as right:
+            source, target = Path(left)/"probe", Path(right)/"probe"
+            source.write_text("temporary hardlink probe\n")
+            os.link(source, target)
+            if not os.path.samefile(source, target):
+                raise ValueError("Hardlink verification failed")
+            print("Hardlink probe passed. This verifies filesystem access, not the installed package layout.")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    sub = parser.add_subparsers(dest="action", required=True)
+    check = sub.add_parser("pnpm")
+    check.add_argument("project", nargs="?", default=".")
+    check.add_argument("--probe", action="store_true")
+    usage = sub.add_parser("usage")
+    usage.add_argument("paths", nargs="*")
+    trees = sub.add_parser("worktrees")
+    trees.add_argument("project", nargs="?", default=".")
+    sub.add_parser("system")
+    args = parser.parse_args()
+    if args.action == "pnpm":
+        pnpm(args.project, args.probe)
+    elif args.action == "usage":
+        paths = args.paths or [str(Path.home()/"Development"), str(Path.home()/".local/share/pnpm"), str(Path.home()/".cache"), str(Path.home()/".local/share/containers/storage")]
+        paths = [str(Path(p).expanduser().resolve()) for p in paths if Path(p).expanduser().exists()]
+        run(["df", "-h", str(Path.home())])
+        if paths:
+            # One du invocation counts hard-linked files once across arguments.
+            run(["du", "-x", "-s", "-h", "--", *paths])
+        print("Hardlinks are counted once across these paths; per-directory sizes depend on argument order.")
+        print("Build outputs (.next/dist/coverage), browser downloads and container volumes are separate from pnpm sharing. No cleanup performed.")
+    elif args.action == "worktrees":
+        run(["git", "-C", args.project, "worktree", "list", "--porcelain"])
+        print("Review work with git -C PATH status --short and preserve commits/untracked data before git worktree remove PATH. Nothing was removed.")
+    else:
+        for command in [["systemctl", "list-timers", "--all", "--no-pager", "apt-daily*", "fstrim*"],
+                        ["systemctl", "--user", "list-timers", "--all", "--no-pager", "ws-*"],
+                        ["lsblk", "-D"], ["apt-config", "dump"]]:
+            result = subprocess.run(command, text=True, capture_output=True)
+            if command[0] == "apt-config":
+                print("\n".join(line for line in result.stdout.splitlines() if "Periodic" in line or "Unattended-Upgrade" in line))
+            else:
+                print(result.stdout or result.stderr)
+        print("Review security-update policy and TRIM support through the encrypted mapping; this command changes neither.")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+        raise SystemExit("Storage check failed: " + str(error))

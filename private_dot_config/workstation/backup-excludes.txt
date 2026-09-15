@@ -1,5 +1,11 @@
 # Preserve configuration and histories; omit reproducible dependencies/caches.
 **/node_modules
+**/.pnpm-store
+**/.local/share/pnpm/store
+**/.next
+**/.nuxt
+**/.turbo
+# Custom pnpm store/cache locations must be added explicitly.
 **/.venv
 **/__pycache__
 **/obj

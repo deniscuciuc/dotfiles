@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+state=${XDG_STATE_HOME:-$HOME/.local/state}/ws-maintenance
+mkdir -p "$state"
+config=${WS_BACKUP_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/workstation/backup.conf}
+action=${1:-health}
+[[ $# -le 1 ]] || exit 2
+alert() {
+  local kind=$1 message=$2 previous=''
+  [[ ! -f $state/$kind.alert ]] || previous=$(cat "$state/$kind.alert")
+  printf '%s\n' "$message"
+  # Notify only when the actionable state changes. Logs retain repeated checks.
+  if [[ $previous != "$message" ]]; then
+    if command -v notify-send >/dev/null && notify-send 'Workstation maintenance' "$message"; then
+      printf '%s' "$message" >"$state/$kind.alert"
+    fi
+  fi
+}
+case $action in
+  health)
+    for path in / "$HOME"; do
+      read -r available used < <(df -Pk "$path" | awk 'END {gsub(/%/, "", $5); print $4, $5}')
+      kind=disk-${path//\//_}
+      if ((available < 20 * 1024 * 1024 || used >= 90)); then
+        alert "$kind" "Low disk space on $path. Run ws-storage usage to inspect; no files were deleted."
+      else rm -f -- "$state/$kind.alert"; fi
+    done
+    if [[ ! -r $config ]]; then
+      alert backup 'External backup is not configured. Follow docs/MAINTENANCE.md.'
+    elif [[ ! -f $state/backup.success ]] || (($(date +%s) - $(stat -c %Y "$state/backup.success") > 7 * 86400)); then
+      alert backup 'No successful workstation backup recorded within 7 days. Attach the backup disk and run ws-maintenance backup.'
+    else rm -f -- "$state/backup.alert"; fi
+    ;;
+  backup | check)
+    exec 9>"$state/backup.lock"
+    if ! flock -n 9; then
+      echo 'Another maintenance backup/check is running; skipped.'
+      exit 0
+    fi
+    if [[ ! -r $config ]]; then
+      echo 'Backup not configured; skipped.'
+      exit 0
+    fi
+    # Same private user-owned configuration used by ws-backup.
+    # shellcheck source=/dev/null
+    source "$config"
+    : "${BACKUP_MOUNT:?Set BACKUP_MOUNT in backup.conf}"
+    if ! mountpoint -q -- "$BACKUP_MOUNT"; then
+      echo 'External disk absent; skipped.'
+      exit 0
+    fi
+    # ws-backup additionally checks UUID, canonical paths and password access.
+    if "$HOME/.local/bin/ws-backup" "$action"; then
+      touch "$state/$action.success"
+      rm -f -- "$state/$action-failure.alert"
+      if [[ $action == backup ]]; then rm -f -- "$state/backup.alert"; fi
+    else
+      code=$?
+      alert "$action-failure" "Workstation $action failed. Inspect journalctl --user -u ws-backup -u ws-backup-check."
+      exit "$code"
+    fi
+    ;;
+  *)
+    echo 'Usage: ws-maintenance [health|backup|check]' >&2
+    exit 2
+    ;;
+esac

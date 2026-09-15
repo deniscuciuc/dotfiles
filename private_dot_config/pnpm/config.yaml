@@ -1,0 +1,5 @@
+# pnpm 11+: shared-store defaults choose a store on the installation filesystem.
+# Keep project lockfiles and packageManager versions authoritative.
+packageImportMethod: auto
+preferOffline: true
+# Global virtual-store sharing remains opt-in until project compatibility tests.
