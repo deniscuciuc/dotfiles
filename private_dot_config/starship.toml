@@ -1,5 +1,6 @@
 add_newline = false
-command_timeout = 500
+# mise may initialize a project runtime on first use.
+command_timeout = 5000
 scan_timeout = 30
 format = "$directory$git_branch$git_status$nodejs$python$dotnet$cmd_duration$line_break$character"
 

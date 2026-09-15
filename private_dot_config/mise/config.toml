@@ -4,3 +4,7 @@ node = "24.18.0"
 
 [settings]
 idiomatic_version_file_enable_tools = ["node"]
+
+[settings.node]
+# Enable pnpm/yarn for every newly installed Node, including project overrides.
+corepack = true

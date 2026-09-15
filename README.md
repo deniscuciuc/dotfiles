@@ -62,3 +62,5 @@ python3 tests/test_dotfiles.py
 ```
 
 For the actual chezmoi application, prompt, backup restore and full workstation tests, follow ws-setup's `docs/TESTING.md`. Candidates are not migration-certified until the Ubuntu desktop and physical-PC checks pass.
+
+Starship allows runtime commands up to 5 seconds for mise first-use initialization. The managed mise setting `node.corepack = true` enables pnpm/yarn launchers when new project Node versions are installed. For a Node version installed before this setting, run `mise exec node@VERSION -- corepack enable` followed by `mise reshim`. Corepack keeps using each project’s `packageManager` version.
