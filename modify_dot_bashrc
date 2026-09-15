@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+"""Preserve the user's Bash settings; manage only the workstation include."""
+import sys
+
+text = sys.stdin.read().replace("\r\n", "\n")
+begin = "# >>> workstation bash >>>"
+end = "# <<< workstation bash <<<"
+block = '''# >>> workstation bash >>>
+if [ -r "$HOME/.config/bash/workstation.bash" ]; then
+  . "$HOME/.config/bash/workstation.bash"
+fi
+# <<< workstation bash <<<'''
+if begin in text:
+    if text.count(begin) != 1 or text.count(end) != 1 or text.index(end) < text.index(begin):
+        raise SystemExit("Malformed workstation block in .bashrc; review it manually")
+    first, rest = text.split(begin, 1)
+    _, last = rest.split(end, 1)
+    text = first + block + last
+else:
+    text = text.rstrip() + "\n\n" + block + "\n"
+sys.stdout.write(text)

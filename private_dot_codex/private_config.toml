@@ -1,0 +1,4 @@
+# Keep model/account choices local. Works with the desktop app and CLI.
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+cli_auth_credentials_store = "auto"

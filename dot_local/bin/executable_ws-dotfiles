@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+state=${XDG_STATE_HOME:-$HOME/.local/state}/ws-setup/dotfiles-source
+source_dir=${CHEZMOI_SOURCE_DIR:-}
+if [[ -z $source_dir && -r $state ]]; then IFS= read -r source_dir <"$state"; fi
+source_dir=${source_dir:-$HOME/.local/share/chezmoi}
+umask 022
+exec chezmoi --source "$source_dir" "$@"

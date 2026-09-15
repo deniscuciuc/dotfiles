@@ -1,0 +1,19 @@
+# Preserve configuration and histories; omit reproducible dependencies/caches.
+**/node_modules
+**/.venv
+**/__pycache__
+**/obj
+**/bin/Debug
+**/bin/Release
+**/.cache
+**/.git/objects/pack/*.tmp
+**/.local/share/Trash
+**/.local/share/containers/storage
+**/.local/share/mise/installs
+**/.local/share/uv/python
+**/.npm
+**/.nuget/packages
+**/.claude/downloads
+**/.codex/tmp
+**/Code/Cache
+**/Code/CachedData

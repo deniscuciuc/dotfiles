@@ -1,0 +1,23 @@
+add_newline = false
+command_timeout = 500
+scan_timeout = 30
+format = "$directory$git_branch$git_status$nodejs$python$dotnet$cmd_duration$line_break$character"
+
+[directory]
+truncation_length = 4
+truncate_to_repo = true
+
+[git_status]
+untracked = ""
+
+[nodejs]
+format = "via [node $version]($style) "
+
+[python]
+format = "via [py $version $virtualenv]($style) "
+
+[dotnet]
+format = "via [.NET $version]($style) "
+
+[cmd_duration]
+min_time = 2000

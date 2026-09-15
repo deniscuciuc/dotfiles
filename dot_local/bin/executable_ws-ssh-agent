@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Explicit opt-in, scoped to a child command. Preserves forwarded/other agents.
+set -euo pipefail
+socket="$HOME/snap/bitwarden/current/.bitwarden-ssh-agent.sock"
+[[ -S $socket ]] || { printf 'Enable SSH Agent in Bitwarden Desktop settings, unlock it, and retry.\n' >&2; exit 1; }
+if (($# == 0)); then
+  SSH_AUTH_SOCK="$socket" ssh-add -l
+else
+  SSH_AUTH_SOCK="$socket" exec "$@"
+fi

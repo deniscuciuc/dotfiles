@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+"""Add login environment without replacing the distribution profile."""
+import sys
+
+text = sys.stdin.read().replace("\r\n", "\n")
+begin = "# >>> workstation environment >>>"
+end = "# <<< workstation environment <<<"
+block = '''# >>> workstation environment >>>
+if [ -r "$HOME/.config/shell/environment.sh" ]; then
+  . "$HOME/.config/shell/environment.sh"
+fi
+# <<< workstation environment <<<'''
+if begin in text:
+    if text.count(begin) != 1 or text.count(end) != 1 or text.index(end) < text.index(begin):
+        raise SystemExit("Malformed workstation block in .profile; review it manually")
+    first, rest = text.split(begin, 1)
+    _, last = rest.split(end, 1)
+    text = first + block + last
+else:
+    text = text.rstrip() + "\n\n" + block + "\n"
+sys.stdout.write(text)

@@ -1,0 +1,19 @@
+# Relative entries are ALWAYS relative to your home, never your current directory.
+Desktop
+Documents
+Pictures
+Videos
+Development
+.ssh
+.gnupg
+.gitconfig
+.gitconfig.local
+.bashrc
+.profile
+.config
+.local/bin
+.local/share/chezmoi
+.local/share/ws-setup
+.local/state/ws-setup
+.claude
+.codex

@@ -1,20 +1,31 @@
-[credential "https://github.com"]
-	helper = 
-	helper = !/usr/bin/gh auth git-credential
-[credential "https://gist.github.com"]
-	helper = 
-	helper = !/usr/bin/gh auth git-credential
 [user]
-	name = Denis Cuciuc
-	email = personal.dcuciuc@gmail.com
+    name = Denis Cuciuc
+    email = personal.dcuciuc@gmail.com
 [init]
-	defaultBranch = main
+    defaultBranch = main
 [pull]
-	rebase = true
+    rebase = true
 [fetch]
-	prune = true
+    prune = true
+[core]
+    pager = delta
+    autocrlf = input
+[interactive]
+    diffFilter = delta --color-only
+[delta]
+    navigate = true
+[merge]
+    conflictstyle = zdiff3
 [alias]
-	lg = log --oneline --graph --decorate --all
-	st = status -sb
-	co = checkout
-	br = branch
+    lg = log --oneline --graph --decorate --all
+    st = status -sb
+    co = checkout
+    br = branch
+[credential "https://github.com"]
+    helper =
+    helper = !gh auth git-credential
+[credential "https://gist.github.com"]
+    helper =
+    helper = !gh auth git-credential
+[include]
+    path = ~/.gitconfig.local

@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+config=${WS_BACKUP_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/workstation/backup.conf}
+[[ -r $config ]] || {
+  printf 'Configure %s using the example in the dotfiles docs.\n' "$config" >&2
+  exit 2
+}
+# This is a private, user-owned shell configuration, never downloaded at runtime.
+# shellcheck source=/dev/null
+source "$config"
+: "${BACKUP_MOUNT:?Set BACKUP_MOUNT in backup.conf}"
+: "${RESTIC_REPOSITORY:?Set RESTIC_REPOSITORY in backup.conf}"
+: "${RESTIC_PASSWORD_FILE:?Set RESTIC_PASSWORD_FILE in backup.conf}"
+export RESTIC_REPOSITORY RESTIC_PASSWORD_FILE
+[[ $BACKUP_MOUNT == /* && $RESTIC_REPOSITORY == "$BACKUP_MOUNT/"* ]] || {
+  echo 'Repository must be inside the configured absolute mount.' >&2
+  exit 2
+}
+BACKUP_MOUNT=$(realpath -e -- "$BACKUP_MOUNT")
+RESTIC_REPOSITORY=$(realpath -m -- "$RESTIC_REPOSITORY")
+[[ $BACKUP_MOUNT != / && $RESTIC_REPOSITORY == "$BACKUP_MOUNT/"* ]] || {
+  echo 'Repository resolves outside the backup mount.' >&2
+  exit 2
+}
+mountpoint -q -- "$BACKUP_MOUNT" || {
+  echo 'Backup disk is not mounted; refusing to write to the system disk.' >&2
+  exit 1
+}
+if [[ -n ${BACKUP_UUID:-} && $(findmnt -n -o UUID --target "$BACKUP_MOUNT") != "$BACKUP_UUID" ]]; then
+  echo 'The mounted disk UUID does not match backup.conf.' >&2
+  exit 1
+fi
+[[ -r $RESTIC_PASSWORD_FILE ]] || {
+  echo 'Restic password file is unavailable.' >&2
+  exit 1
+}
+targets_file=${BACKUP_TARGETS_FILE:-$HOME/.config/workstation/backup-targets.txt}
+excludes_file=${BACKUP_EXCLUDES_FILE:-$HOME/.config/workstation/backup-excludes.txt}
+action=${1:-backup}
+shift || true
+case $action in
+  init)
+    [[ $# == 0 ]] || exit 2
+    exec restic init
+    ;;
+  backup)
+    [[ $# == 0 && -r $targets_file && -r $excludes_file ]] || {
+      echo 'Targets/excludes are missing, or unexpected arguments.' >&2
+      exit 2
+    }
+    targets=()
+    while IFS= read -r line || [[ -n $line ]]; do
+      [[ -z $line || $line == \#* ]] && continue
+      case $line in
+        '~') path=$HOME ;;
+        '~/'*) path="$HOME/${line:2}" ;;
+        /*) path=$line ;;
+        *) path="$HOME/$line" ;;
+      esac
+      if [[ -e $path ]]; then targets+=("$path"); else printf 'Skipping missing target: %s\n' "$path" >&2; fi
+    done <"$targets_file"
+    ((${#targets[@]})) || {
+      echo 'No existing backup targets.' >&2
+      exit 1
+    }
+    exec restic backup --compression auto --exclude-file "$excludes_file" --exclude "$BACKUP_MOUNT" -- "${targets[@]}"
+    ;;
+  check)
+    [[ $# == 0 ]] || exit 2
+    exec restic check --read-data
+    ;;
+  snapshots | stats)
+    [[ $# == 0 ]] || exit 2
+    exec restic "$action"
+    ;;
+  restore)
+    [[ $# == 2 && $2 == /* && $2 != / && $2 != "$HOME" ]] || {
+      echo 'Usage: ws-backup restore SNAPSHOT /absolute/empty/destination' >&2
+      exit 2
+    }
+    [[ ! -e $2 ]] || {
+      echo 'Restore destination must not already exist.' >&2
+      exit 2
+    }
+    exec restic restore "$1" --target "$2"
+    ;;
+  retention)
+    [[ ${1:-} == --apply && $# == 1 ]] || {
+      echo 'Preview: restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --dry-run'
+      echo 'Apply: ws-backup retention --apply'
+      exit 2
+    }
+    exec restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --prune
+    ;;
+  *)
+    echo 'Commands: init, backup, snapshots, check, stats, restore, retention' >&2
+    exit 2
+    ;;
+esac

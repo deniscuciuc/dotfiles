@@ -1,0 +1,3 @@
+[engine]
+compose_providers = [{{ printf "%s/.local/bin/docker-compose" .chezmoi.homeDir | quote }}]
+compose_warning_logs = false
